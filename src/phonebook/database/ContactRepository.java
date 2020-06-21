@@ -34,18 +34,13 @@ public class ContactRepository {
     /**
      * Path to the database of contacts
      */
-    private static final String DATABASE_NAME = "src/phonebook/database/contacts.json";
+    private static final String DATABASE_NAME = "contacts.json";
     
     /**
-     * Path to the text file of contact information
+     * file name prefix of contact information
      * available after every execution
      */
-    private static final String FILE_NAME = "src/phonebook/database/contacts";
-    
-    /**
-     * Holds the absolute path to the database file
-     */
-    private final String dbPath;
+    private static final String FILE_NAME_PREFIX = "contacts";
     
     /**
      * Array of contacts
@@ -58,7 +53,6 @@ public class ContactRepository {
      */
     public ContactRepository()
     {
-        this.dbPath = this.getDbPath();
         this.contacts = this.loadContacts();
     }
     
@@ -70,20 +64,7 @@ public class ContactRepository {
      */
     public ContactRepository(ArrayList<Contact> contacts)
     {
-        this.dbPath = this.getDbPath();
         this.contacts = contacts;
-    }
-    
-    /**
-     * This method returns the absolute path to the database
-     *
-     * @return absolutePath
-     */
-    private String getDbPath()
-    {
-        Path currentRelativePath = Paths.get(ContactRepository.DATABASE_NAME);
-        
-        return currentRelativePath.toAbsolutePath().toString();
     }
     
     /**
@@ -97,11 +78,24 @@ public class ContactRepository {
         Date date = new Date();
         long time = date.getTime();
         
-        //To make the file name unique, We append the contact name
+        //To make the file name unique, We append the file name prefix
         //with the current time in milliseconds
-        String fileName = ContactRepository.FILE_NAME + "-" + time + ".txt";
+        String fileName = ContactRepository.FILE_NAME_PREFIX + "-" + time + ".txt";
         
         Path currentRelativePath = Paths.get(fileName);
+        
+        return currentRelativePath.toAbsolutePath().toString();
+    }
+    
+    /**
+     * Returns the absolute path to the database @json file
+     * 
+     * @return contactsFilePath
+     */
+    private String getDatabasePath()
+    {
+        
+        Path currentRelativePath = Paths.get(DATABASE_NAME);
         
         return currentRelativePath.toAbsolutePath().toString();
     }
@@ -320,11 +314,11 @@ public class ContactRepository {
         ArrayList<Contact> data = new ArrayList<>();
         
         try {
-            //Create a new file instance with the database path
-            File contactFile = new File(this.dbPath);
+            //Get the input stream of the database json file
+            File database = this.getDatabase();
             
             //Read the entire database to a string
-            String jsonContacts = new Scanner(contactFile).useDelimiter("\\Z").next();
+            String jsonContacts = new Scanner(database, "UTF-8").useDelimiter("\\Z").next();
             
             //Create a new instance of Gson (A helper library to handle json files)
             Gson gson = new Gson();
@@ -334,7 +328,7 @@ public class ContactRepository {
             data =  gson.fromJson(jsonContacts, type);
             
         } catch (Exception exception) {
-            MessageHelper.printError("Couldn't access contacts file");
+            MessageHelper.printError("can't connect to json database");
         }
         
         return data;
@@ -356,8 +350,11 @@ public class ContactRepository {
             //Read the entire repository to a json string
             String jsonContacts = gson.toJson(this.all());
             
+            //get the database file
+            File database = this.getDatabase();
+            
             //Create a file writer instance
-            writer = new FileWriter(this.dbPath);
+            writer = new FileWriter(database);
             
             //Write to databse file
             writer.write(jsonContacts);
@@ -377,6 +374,37 @@ public class ContactRepository {
                 MessageHelper.printError("could not save contact information");
             }
         }
+    }
+    
+    /**
+     * Ensures that the database exists in the file system
+     * @return database
+     */
+    public File getDatabase()
+    {
+        String databasePath = this.getDatabasePath();
+        File database = null;
+        
+        try {
+            database = new File(databasePath);
+            
+            //If file doesnt exist, create the file
+            if (! database.exists())  {
+                
+                database.createNewFile();
+                
+                try (FileWriter writer = new FileWriter(database)) {
+                    writer.write("[]");
+                    writer.close();
+                }
+                
+            }
+            
+        } catch (IOException ignored) {
+            MessageHelper.printError("could not connect to database");
+        }
+        
+        return database;
     }
     
     /**
