@@ -314,7 +314,7 @@ public class ContactRepository {
         ArrayList<Contact> data = new ArrayList<>();
         
         try {
-            //Get the input stream of the database json file
+            //Get the database json file
             File database = this.getDatabase();
             
             //Read the entire database to a string
