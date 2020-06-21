@@ -73,25 +73,20 @@ public class ModifyContactHandler extends ContactHandler {
         
         //If the user is changing the phone number, validate
         //that the number is unique
-        if (! phoneNumber.isEmpty()) {
-            
-            this.validateInputs(
-                firstName, 
-                lastName, 
-                city, 
-                address, 
-                phoneNumber
-            );
+        if (! phoneNumber.isEmpty() && this.phoneNumberExists(phoneNumber)) {
+            MessageHelper.printError("phoneNumber already exists");
         }
         
+        phoneNumber = phoneNumber.isEmpty() ? this.contact.phoneNumber : phoneNumber;
+        
         //create new contact instance for the update
-        Contact contact = new Contact(
+        Contact recent = new Contact(
                 firstName, lastName, city, 
                 address, phoneNumber
         );
         
         //Save update to the database
-        this.repository().update(this.contact, contact).offloadContacts();
+        this.repository().update(this.contact, recent).offloadContacts();
         
         //Create new contact display helper
         ContactDisplayHelper display = new ContactDisplayHelper(
@@ -103,36 +98,12 @@ public class ModifyContactHandler extends ContactHandler {
     }
     
     /**
-     * Validate the user input
+     * Checks whether a phone number exists
      * 
-     * @param firstName
-     * @param lastName
-     * @param city
-     * @param address
      * @param phoneNumber
      */
-    private void validateInputs(
-        String firstName, 
-        String lastName, 
-        String city, 
-        String address, 
-        String phoneNumber
-    ) {
-        
-        //Check that all the fields are not empty
-        if (
-                firstName.isEmpty() ||
-                lastName.isEmpty() || 
-                city.isEmpty() || 
-                address.isEmpty() || 
-                phoneNumber.isEmpty()
-        ) {
-            MessageHelper.printError("All fields are required");
-        }
-        
-        //Check that the phone number is unique in the database
-        if (this.repository().where("phoneNumber", phoneNumber).exists()) {
-            MessageHelper.printError("phoneNumber already exists");
-        }
+    private boolean phoneNumberExists(String phoneNumber) 
+    {
+        return this.repository().where("phoneNumber", phoneNumber).exists();
     }
 }
